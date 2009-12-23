@@ -2,17 +2,17 @@
 LICENSE INFORMATION:
 
 Copyright 2009, Adam Tuttle
- 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not 
-use this file except in compliance with the License. 
 
-You may obtain a copy of the License at 
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License.
 
-	http://www.apache.org/licenses/LICENSE-2.0 
-	
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 
 VERSION INFORMATION:
@@ -24,24 +24,24 @@ This file is part of Scribe.
 	<cffunction name="init" access="public" output="false" returntype="any">
 		<cfargument name="mainManager" type="any" required="true" />
 		<cfargument name="preferences" type="any" required="true" />
-		
+
 		<cfset setManager(arguments.mainManager) />
 		<cfset setPreferencesManager(arguments.preferences) />
 		<cfset setPackage("com/fusiongrokker/plugins/Scribe") />
-		
+
 		<!--- get database type --->
 		<cfset variables.objQryAdapter = getManager().getQueryInterface() />
 		<cfset variables.dbType = objQryAdapter.getDBType() />
-		
+
 		<!--- setup jsonUtil for management --->
 		<cfset variables.jsonutil = createObject("component","JSONUtil") />
-		
+
 		<!--- set default preferences --->
 		<cfset initSettings(
 			fromEmail = "",
 			subject = "[{blogTitle}] {postTitle}",
 			body =	"A new blog post is available on {blogTitle}!<br/>#chr(13)&chr(10)#<br/>#chr(13)&chr(10)#" &
-					"<strong>{postTitle}</strong><br/>#chr(13)&chr(10)#" & 
+					"<strong>{postTitle}</strong><br/>#chr(13)&chr(10)#" &
 					"{excerpt}<br/>#chr(13)&chr(10)#<br/>#chr(13)&chr(10)#" &
 					"Click here to view the entry: <a href='{url}'>{url}</a><br/>#chr(13)&chr(10)#<br/>#chr(13)&chr(10)#" &
 					"<a href='{unsubscribeUrl}'>click here to unsubscribe</a>",
@@ -53,8 +53,8 @@ This file is part of Scribe.
 
 		<cfreturn this/>
 	</cffunction>
-	
-<!--- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: --->	
+
+<!--- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: --->
 	<cffunction name="setup" hint="This is run when a plugin is activated" access="public" output="false" returntype="any">
 		<cfset var qNewTable = ""/>
 		<cfset var sql = ""/>
@@ -124,7 +124,7 @@ This file is part of Scribe.
 		<cfreturn "Upgrade complete." />
 	</cffunction>
 
-<!--- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: --->	
+<!--- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: --->
 	<cffunction name="handleEvent" hint="Asynchronous event handling" access="public" output="false" returntype="any">
 		<cfargument name="event" type="any" required="true" />
 		<!--- this plugin doesn't respond to any asynch events --->
@@ -134,16 +134,16 @@ This file is part of Scribe.
 		<cfargument name="event" type="any" required="true" />
 		<cfset var eventName = arguments.event.getName()/>
 		<cfset var local = structNew()/>
-		
+
 		<cfset local.unsubURL = "generic.cfm?event=scribe-unsubscribe&email=" />
 		<cfset local.subURL = "generic.cfm?event=scribe-subscribe&email=" />
-		
+
 		<cfif eventName EQ "Scribe-pod">
 			<cfsavecontent variable="local.content">
 				<cfinclude template="podContent.cfm"/>
 			</cfsavecontent>
 			<cfset event.outputData = event.outputData & local.content />
-			
+
 		<cfelseif eventName EQ "getPods">
 			<!--- render pod body --->
 			<cfsavecontent variable="local.content">
@@ -156,7 +156,7 @@ This file is part of Scribe.
 			<cfset local.pod.content = local.content />
 			<cfset local.pod.id = "scribe" />
 			<cfset arguments.event.addPod(local.pod)>
-			
+
 		<cfelseif eventName EQ "scribe-subscribe">
 			<cfscript>
 				local.email = "you@yourdomain.com";
@@ -218,7 +218,7 @@ This file is part of Scribe.
 					event.data.message.setData("<p>You must enter your email address.</p>");
 				}
 			</cfscript>
-		
+
 		<cfelseif eventName EQ "Scribe-manage-unsub">
 			<cfscript>
 				local.rtn = StructNew();
@@ -231,12 +231,12 @@ This file is part of Scribe.
 					local.result = variables.objQryAdapter.makeQuery(local.sql, -1, false);
 					local.rtn.message = true;
 				}catch(any e){
-					local.rtn.message = "Delete failed";	
+					local.rtn.message = "Delete failed";
 				}
 				local.data = arguments.event.data;
 				local.data.message.setData(variables.jsonutil.serializeCustom(local.rtn));
 			</cfscript>
-			
+
 		<cfelseif eventName EQ "getPodsList">
 			<!--- register the pod for the pod-manager --->
 			<cfset local.pod = structnew() />
@@ -263,7 +263,7 @@ This file is part of Scribe.
 			<cfset local.data = arguments.event.data />
 			<cfset local.data.message.setTitle("Scribe email subscription settings") />
 			<cfset local.data.message.setData(local.content) />
-		
+
 		<cfelseif eventName eq "Scribe-doMail">
 			<!--- this event is run by scheduled job, scheduled during "afterPostAdd" --->
 			<!--- <cflog file="Scribe" text="Sending email - postid: #event.data.externalData.postId#" /> --->
@@ -278,18 +278,18 @@ This file is part of Scribe.
 			<cfscript>
 				//default to false, do nothing
 				local.doMail = false;
-				
+
 				//if newItem.status = draft, do not mail
 				if (event.data.newItem.getStatus() eq "published"){
 					//default to email=true
 					local.doMail = true;
-					
+
 					//if oldItem.status = published, then this was just a correction, do not email
 					if (structKeyExists(event, "oldItem") and not isSimpleValue(event.oldItem) and event.oldItem.getStatus() eq "published"){
 						local.doMail = false;
 					}
 				}
-				
+
 				//get post info
 				if (local.doMail){
 					local.publishDate = event.data.newItem.getPostedOn();
@@ -298,7 +298,7 @@ This file is part of Scribe.
 			</cfscript>
 			<cfif local.doMail>
 				<!---
-					scheduling a one-run job in the past causes it to be run immediately, so we don't 
+					scheduling a one-run job in the past causes it to be run immediately, so we don't
 					need to worry about the publish date/time, just use it!
 				--->
 				<!--- <cflog file="Scribe" text="Scheduling job! Post Title: #event.newItem.getTitle()#" /> --->
@@ -390,7 +390,7 @@ This file is part of Scribe.
 			local.args.postExcerpt = local.post.getExcerpt();
 			local.args.postBody = local.post.getContent();
 			local.args.postAuthor = local.post.getAuthor();
-			
+
 			//use custom from email, if provided
 			local.fromEmail = getSetting('fromEmail');
 			if (lcase(local.fromEmail) eq '{authoremail}'){
@@ -407,7 +407,7 @@ This file is part of Scribe.
 			if (not len(local.args.postExcerpt)){
 				local.args.postExcerpt = left(reReplaceNoCase(local.args.postBody,"<[^>]*>","", "ALL"), 200);
 			}
-			
+
 			//lookup preferences (blog title, email template)
 			local.args.blogTitle = getManager().getBlog().getTitle();
 	 		local.args.emailTemplate = getSetting("body");
@@ -430,7 +430,7 @@ This file is part of Scribe.
 		<cfargument name="subjTemplate" type="string" required="true"/>
 		<cfscript>
 			var local = structNew();
-			
+
 			local.emailCount = arrayLen(arguments.toEmail);
 			if (local.emailCount eq 0){
 				return; //nobody is subscribed
@@ -473,10 +473,10 @@ This file is part of Scribe.
 	<cffunction name="mailSubscribersCustom" output="false" access="private" returntype="void" hint="I send a custom message to all subscribers">
 		<cfargument name="subj" type="string" required="true"/>
 		<cfargument name="body" type="string" required="true"/>
-	
+
 		<cfscript>
 			var local = structNew();
-			
+
 			//get from and to addresses
 			local.from = getSetting('fromEmail');
 			if (local.from neq '' and find('@', local.from)){
@@ -484,32 +484,32 @@ This file is part of Scribe.
 			}else{
 				//this case catches invalid email addresses, OR {authorEmail}
 				//in either case, we'll just use the blog default email instead
-				
+
 				//instead of passing an empty string (as below), don't pass anything
 				//local.args.from = '';
 			}
-			
+
 			//get subscribers
 			local.subscribers = getSubscribers();
-			
+
 			//if no subscribers, just kill it here
 			local.emailCount = arrayLen(local.subscribers);
 			if (arrayLen(local.subscribers) eq 0){
 				return;
 			}
-	
+
 			//mailing object
 			local.mailer = getManager().getMailer();
-	
+
 			//setup argumentCollection
 			local.args.type = "html";
 			local.args.subject = arguments.subj;
 			local.args.body = arguments.body;
-	
+
 			for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
 				//set the TO address to the current subscriber
 				local.args.to = local.subscribers[local.e];
-	
+
 				//send the email
 				local.mailer.sendEmail(argumentCollection = local.args);
 			}
@@ -541,22 +541,22 @@ This file is part of Scribe.
 		<cfscript>
 			var local = structNew();
 			local.args = structNew();
-			
+
 			local.confirm = getManager().getBlog().getUrl() & "/generic.cfm?event=scribe-activate&code=#arguments.code#";
 			local.deny = getManager().getBlog().getUrl() & "/generic.cfm?event=scribe-unsubscribe&email=#arguments.email#";
-			
+
 			local.args.from = getSetting('fromEmail');
 			if (not(len(trim(local.args.from)))){
 				structDelete(local.args, "from");
 			}
-			
+
 			local.args.to = arguments.email;
 			local.args.type="html";
 			local.args.subject = "[#getManager().getBlog().getTitle()#] Confirm Subscription";
 			local.args.body = "Hello,<br/><br/>You are receiving this email because you subscribed to <strong>#getManager().getBlog().getTitle()#</strong><br/><br/>";
 			local.args.body = local.args.body & "To confirm your subscription, please click here: <a href='#local.confirm#'>#local.confirm#</a><br /><br />";
 			local.args.body = local.args.body & "If you did not create this subscription, or otherwise want to remove this request, click here: <a href='#local.deny#'>#local.deny#</a>";
-			
+
 			local.mailer = getManager().getMailer();
 			local.mailer.sendEmail(argumentCollection = local.args);
 		</cfscript>
@@ -572,7 +572,7 @@ This file is part of Scribe.
 				return false;
 			}else{
 				local.sql = "update #variables.objQryAdapter.getTablePrefix()##getSetting('TableName')# set ActiveFlag='active' where blogId='#getManager().getBlog().getId()#' and ActiveFlag='#arguments.code#'";
-				local.sqlResult = variables.objQryAdapter.makeQuery(local.sql,false);
+				local.sqlResult = variables.objQryAdapter.makeQuery(local.sql,-1,false);
 				return true;
 			}
 		</cfscript>
