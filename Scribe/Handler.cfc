@@ -50,7 +50,7 @@ This file is part of Scribe.
 			TableName = "emailSubscribers",
 			DoubleOptIn = true
 		)/>
-
+		
 		<cfreturn this/>
 	</cffunction>
 
@@ -203,19 +203,21 @@ This file is part of Scribe.
 				local.email = "you@yourdomain.com";
 				if (structKeyExists(event.getData().externalData, "email")){
 					local.email = event.getData().externalData.email;
-				}
-				if (local.email neq "you@yourdomain.com" and len(trim(local.email))){
-					local.result = unsubscribe(local.email);
-					if (local.result){
-						event.data.message.setTitle("Unsubscribe Successful");
-						event.data.message.setData("<p>You have been <strong><em>unsubscribed</em></strong>.</p><p>Was that an accident? <a href='#local.subURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>subscribe</em></strong>.</a></p>");
+					if (local.email neq "you@yourdomain.com" and len(trim(local.email))){
+						local.result = unsubscribe(local.email);
+						if (local.result){
+							event.data.message.setTitle("Unsubscribe Successful");
+							event.data.message.setData("<p>You have been <strong><em>unsubscribed</em></strong>.</p><p>Was that an accident? <a href='#local.subURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>subscribe</em></strong>.</a></p>");
+						}else{
+							event.data.message.setTitle("Unsubscribe Failed");
+							event.data.message.setData("<p>Your unsubscription failed. Sorry! It looks like the email address you entered is invalid. Please try again.</p>");
+						}
 					}else{
 						event.data.message.setTitle("Unsubscribe Failed");
-						event.data.message.setData("<p>Your unsubscription failed. Sorry! It looks like the email address you entered is invalid. Please try again.</p>");
+						event.data.message.setData("<p>You must enter your email address.</p>");
 					}
-				}else{
-					event.data.message.setTitle("Unsubscribe Failed");
-					event.data.message.setData("<p>You must enter your email address.</p>");
+				}else{ //not structKeyExists(event.getData().externalData, "email")
+					event = showUnsubscribeForm(event);
 				}
 			</cfscript>
 
@@ -349,6 +351,16 @@ This file is part of Scribe.
 		</cfif>
 		<cfreturn true/>
 	</cffunction>
+	<cffunction name="showUnsubscribeForm" output="false" access="private" returntype="Any" hint="I display the unsubscribe form; used when an email field isn't included">
+		<cfargument name="event" required="true" />
+		<cfset var formData = '' />
+		<cfsavecontent variable="formData">
+			<cfinclude template="unsubscribe.cfm" />
+		</cfsavecontent>
+		<cfset arguments.event.data.message.setTitle("Unsubscribe") />
+		<cfset arguments.event.data.message.setData(formData) />
+		<cfreturn arguments.event />
+	</cffunction>
 	<cffunction name="unsubscribe" output="false" access="private" returntype="boolean" hint="I unsubscribe an email address from future posts">
 		<cfargument name="email" type="string" required="true"/>
 		<cfset var local = structNew()/>
@@ -437,8 +449,18 @@ This file is part of Scribe.
 			}
 
 			local.mailer = getManager().getMailer();
+			
+			//test to see if BCC is available
+			try {
+				variables.bcc = local.mailer.supportsBCC();
+			} catch (any e){
+				variables.bcc = false;
+			}
+
 			//fill out body template
+			local.unsubURL = getManager().getBlog().getUrl() & "/generic.cfm?event=scribe-unsubscribe";
 			local.body = replace(arguments.emailTemplate, "{url}",arguments.postURI,"ALL");
+			local.body = replace(local.body, "{unsubscribeUrl}", local.unsubURL, "ALL");
 			local.body = replace(local.body, "{excerpt}", arguments.postExcerpt, "ALL");
 			local.body = replace(local.body, "{body}", arguments.postBody, "ALL");
 			local.body = replace(local.body, "{blogTitle}", arguments.blogTitle, "ALL");
@@ -447,8 +469,12 @@ This file is part of Scribe.
 
 			//setup argumentCollection
 			local.args = structNew();
+			local.args.body = local.body;
 			if (arguments.fromEmail neq ''){
 				local.args.from = arguments.fromEmail;
+				//send from and to the same person by default. If sending individual emails per subscriber,
+				//then TO will be overwritten to the subscriber
+				local.args.to = arguments.fromEmail;
 			}
 			local.args.type = "html";
 			local.args.subject = replaceList(
@@ -457,16 +483,23 @@ This file is part of Scribe.
 				"#arguments.blogTitle#,#arguments.postTitle#"
 			);
 
-			for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
-				local.args.to = arguments.toEmail[local.e];
+			//if using PowerMail (for BCC & SSL/TLS support)
+			if (variables.BCC){
+				//then break up subscribers into 100-address chunks
+				local.subscriberLists = chunkAddressArray();
+				//send emails to each chunk of subscribers
+				for (local.i = 0; local.i lte arrayLen(local.subscriberLists); local.i = local.i + 1) {
+					local.args.bcc = local.subscriberLists[local.i];
+					local.mailer.sendEmail(argumentCollection = local.args);
+				}
+			}else{
+				//BCC isn't available, so just send 1 email per subscriber
+				for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
+					local.args.to = arguments.toEmail[local.e];
 
-				//last minute updates to the body (per-email address)
-				local.unsubURL = getManager().getBlog().getUrl() & "/generic.cfm?event=scribe-unsubscribe&email=#local.e#";
-				local.body = replace(local.body, "{unsubscribeUrl}", local.unsubURL, "ALL");
-				local.args.body = local.body;
-
-				//send the email
-				local.mailer.sendEmail(argumentCollection = local.args);
+					//send the email
+					local.mailer.sendEmail(argumentCollection = local.args);
+				}
 			}
 		</cfscript>
 	</cffunction>
@@ -497,21 +530,41 @@ This file is part of Scribe.
 			if (arrayLen(local.subscribers) eq 0){
 				return;
 			}
-
+			
 			//mailing object
 			local.mailer = getManager().getMailer();
+
+			//check if BCC is available
+			try {
+				variables.BCC = local.mailer.supportsBCC();
+			} catch (any e) {
+				variables.BCC = false;
+			}
 
 			//setup argumentCollection
 			local.args.type = "html";
 			local.args.subject = arguments.subj;
 			local.args.body = arguments.body;
 
-			for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
-				//set the TO address to the current subscriber
-				local.args.to = local.subscribers[local.e];
+			//if using PowerMail (for BCC & SSL/TLS support)
+			if (variables.BCC){
+				//then break up subscribers into 100-address chunks
+				local.subscriberLists = chunkAddressArray(local.subscribers);
+				//send emails to each chunk of subscribers
+				for (local.i = 0; local.i lte arrayLen(local.subscriberLists); local.i = local.i + 1) {
+					local.args.bcc = local.subscriberLists[local.i];
+					local.mailer.sendEmail(argumentCollection = local.args);
+				}
+			}else{
+				//BCC isn't available, so just send 1 email per subscriber
 
-				//send the email
-				local.mailer.sendEmail(argumentCollection = local.args);
+				for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
+					//set the TO address to the current subscriber
+					local.args.to = local.subscribers[local.e];
+	
+					//send the email
+					local.mailer.sendEmail(argumentCollection = local.args);
+				}
 			}
 		</cfscript>
 	</cffunction>
@@ -520,12 +573,32 @@ This file is part of Scribe.
 		<cfset var local = structNew()/>
 		<cfset arguments.email = trim(arguments.email)/>
 		<!--- validate email address --->
-		<cfset local.emailRegex = "^[^0-9][a-zA-Z0-9_]+([.][a-zA-Z0-9_]+)*[@][a-zA-Z0-9_]+([.][a-zA-Z0-9_]+)*[.][a-zA-Z]{2,4}$"/>
+		<cfset local.emailRegex = "^[a-zA-Z][a-zA-Z0-9_\-\.]+[@][a-zA-Z0-9_]+([\.][a-zA-Z0-9_]+)*[\.][a-zA-Z]{2,4}$"/>
 		<cfset local.emailValid = reReplaceNoCase(arguments.email,local.emailRegex,"true")/>
 		<cfif (local.emailValid neq "true")>
 			<cfreturn false />
 		</cfif>
 		<cfreturn true />
+	</cffunction>
+	<cffunction name="chunkAddressArray" access="private" output="false" returntype="Array">
+		<cfargument name="arrayIn" type="array" required="true" />
+		<cfscript>
+			var local = structNew();
+			//break up subscribers into 100-address chunks
+			local.arrayOut = arrayNew(1);
+			if (arrayLen(arguments.arrayIn) lte 100){
+				local.arrayOut[1] = arrayToList(arguments.arrayIn);
+			}else{
+				//create chunk lists of 100 subscribers
+				local.count = arrayLen(arguments.arrayIn);
+				for (local.i = 0; local.i lte local.count; local.i = local.i + 1) {
+					local.listNum = ceiling(local.i / 100);
+					arrayParam(local.arrayOut, local.listNum, '');
+					local.arrayOut[local.listNum] = listAppend(local.arrayOut[local.listNum], arguments.arrayIn[local.i]);
+				}
+			}
+			return arrayOut;
+		</cfscript>
 	</cffunction>
 	<cffunction name="getSubscribers" access="private" output="false" returntype="array">
 		<cfscript>
@@ -577,6 +650,18 @@ This file is part of Scribe.
 			}
 		</cfscript>
 	</cffunction>
+	<cffunction name="arrayParam" access="private" output="false">
+		<cfargument name="arrayToCheck" type="array" required="true" />
+		<cfargument name="index" type="numeric" required="true" />
+		<cfargument name="default" type="any" required="false" default="" />
+		<cfset var foo = '' />
+		<cftry>
+			<cfset foo = arguments.arrayToCheck[arguments.index] />
+			<cfcatch>
+				<cfset arguments.arrayToCheck[arguments.index] = arguments.default />
+			</cfcatch>
+		</cftry>
+	</cffunction>
 
 	<!--- add throw for cfscript usage --->
 	<cffunction name="throw">
@@ -588,5 +673,4 @@ This file is part of Scribe.
 		<cfargument name="obj" type="any" required="true" />
 		<cfthrow object="#arguments.obj#" />
 	</cffunction>
-
 </cfcomponent>
