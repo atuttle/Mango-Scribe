@@ -50,7 +50,7 @@ This file is part of Scribe.
 			TableName = "emailSubscribers",
 			DoubleOptIn = true
 		)/>
-		
+
 		<cfreturn this/>
 	</cffunction>
 
@@ -162,23 +162,22 @@ This file is part of Scribe.
 				local.email = "you@yourdomain.com";
 				if (structKeyExists(event.getData().externalData, "email")){
 					local.email = event.getData().externalData.email;
-				}
-				if (local.email neq "you@yourdomain.com" and len(trim(local.email))){
-					local.result = subscribe(local.email);
-					if (local.result){
-						event.data.message.setTitle("Subscribe Successful");
-						if (getSetting('DoubleOptIn')){
-							event.data.message.setData("<p>You have been <strong><em>subscribed</em></strong>, and an activation link has been sent to your email address. You will not receive any subscription emails until you follow the link it contains to activate your subscription.</p><p>Was that an accident? <a href='#local.unsubURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>unsubscribe</em></strong>.</a></p>");
+					if (local.email neq "you@yourdomain.com" and len(trim(local.email))){
+						local.result = subscribe(local.email);
+						if (local.result){
+							event.data.message.setTitle("Subscribe Successful");
+							if (getSetting('DoubleOptIn')){
+								event.data.message.setData("<p>You have been <strong><em>subscribed</em></strong>, and an activation link has been sent to your email address. You will not receive any subscription emails until you follow the link it contains to activate your subscription.</p><p>Was that an accident? <a href='#local.unsubURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>unsubscribe</em></strong>.</a></p>");
+							}else{
+								event.data.message.setData("<p>You have been <strong><em>subscribed</em></strong>.</p><p>Was that an accident? <a href='#local.unsubURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>unsubscribe</em></strong>.</a></p>");
+							}
 						}else{
-							event.data.message.setData("<p>You have been <strong><em>subscribed</em></strong>.</p><p>Was that an accident? <a href='#local.unsubURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>unsubscribe</em></strong>.</a></p>");
+							event.data.message.setTitle("Subscribe Failed");
+							event.data.message.setData("<p>Your subscription request failed. Sorry about that! It looks like the email address you entered is invalid. Please try again.</p>");
 						}
-					}else{
-						event.data.message.setTitle("Subscribe Failed");
-						event.data.message.setData("<p>Your subscription failed. Sorry!</p>");
 					}
 				}else{
-					event.data.message.setTitle("Subscribe Failed");
-					event.data.message.setData("<p>You must enter your email address.</p>");
+					event = showSubscribeForm(event);
 				}
 			</cfscript>
 
@@ -210,7 +209,8 @@ This file is part of Scribe.
 							event.data.message.setData("<p>You have been <strong><em>unsubscribed</em></strong>.</p><p>Was that an accident? <a href='#local.subURL & urlEncodedFormat(local.email)#'>Click here to <strong><em>subscribe</em></strong>.</a></p>");
 						}else{
 							event.data.message.setTitle("Unsubscribe Failed");
-							event.data.message.setData("<p>Your unsubscription failed. Sorry! It looks like the email address you entered is invalid. Please try again.</p>");
+							event.data.message.setData("<p>Your unsubscription failed. Sorry about that! It looks like the email address you entered is invalid. Please try again.</p>");
+							event = showUnsubscribeForm(event);
 						}
 					}else{
 						event.data.message.setTitle("Unsubscribe Failed");
@@ -319,6 +319,16 @@ This file is part of Scribe.
 	</cffunction>
 
 <!--- private, internal methods --->
+	<cffunction name="showSubscribeForm" output="false" access="private" returntype="Any" hint="I display the subscribe form; used when an email field isn't included">
+		<cfargument name="event" required="true" />
+		<cfset var formData = '' />
+		<cfsavecontent variable="formData">
+			<cfinclude template="subscribe.cfm" />
+		</cfsavecontent>
+		<cfset arguments.event.data.message.setTitle("Subscribe") />
+		<cfset arguments.event.data.message.setData(formData) />
+		<cfreturn arguments.event />
+	</cffunction>
 	<cffunction name="subscribe" output="false" access="private" returntype="boolean" hint="I subscribe an email address to future posts">
 		<cfargument name="email" type="string" required="true"/>
 		<cfargument name="requireActivation" type="boolean" required="false" default="true"/>
@@ -449,7 +459,7 @@ This file is part of Scribe.
 			}
 
 			local.mailer = getManager().getMailer();
-			
+
 			//test to see if BCC is available
 			try {
 				variables.bcc = local.mailer.supportsBCC();
@@ -530,7 +540,7 @@ This file is part of Scribe.
 			if (arrayLen(local.subscribers) eq 0){
 				return;
 			}
-			
+
 			//mailing object
 			local.mailer = getManager().getMailer();
 
@@ -561,7 +571,7 @@ This file is part of Scribe.
 				for (local.e = 1; local.e lte local.emailCount; local.e = local.e + 1){
 					//set the TO address to the current subscriber
 					local.args.to = local.subscribers[local.e];
-	
+
 					//send the email
 					local.mailer.sendEmail(argumentCollection = local.args);
 				}
