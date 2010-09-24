@@ -496,7 +496,7 @@ This file is part of Scribe.
 			//if using PowerMail (for BCC & SSL/TLS support)
 			if (variables.BCC){
 				//then break up subscribers into 100-address chunks
-				local.subscriberLists = chunkAddressArray();
+				local.subscriberLists = chunkAddressArray(arguments.toEmail);
 				//send emails to each chunk of subscribers
 				for (local.i = 0; local.i lte arrayLen(local.subscriberLists); local.i = local.i + 1) {
 					local.args.bcc = local.subscriberLists[local.i];
