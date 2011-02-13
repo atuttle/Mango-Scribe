@@ -607,7 +607,7 @@ This file is part of Scribe.
 					local.arrayOut[local.listNum] = listAppend(local.arrayOut[local.listNum], arguments.arrayIn[local.i]);
 				}
 			}
-			return arrayOut;
+			return local.arrayOut;
 		</cfscript>
 	</cffunction>
 	<cffunction name="getSubscribers" access="private" output="false" returntype="array">
