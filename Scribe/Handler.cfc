@@ -531,6 +531,7 @@ This file is part of Scribe.
 				//instead of passing an empty string (as below), don't pass anything
 				//local.args.from = '';
 			}
+			local.args.to = getSetting('fromEmail');
 
 			//get subscribers
 			local.subscribers = getSubscribers();
