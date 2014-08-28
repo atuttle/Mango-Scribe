@@ -58,8 +58,8 @@ This file is part of Scribe.
 	<cfif len(form.txtMailSubj) eq 0 or len(form.txtMailBody) eq 0>
 		<cfset local.mailMsg = "Both subject and body are required fields" />
 	<cfelse>
-		<cfset local.mailMsg = "" />
 		<cfset mailSubscribersCustom(form.txtMailSubj, form.txtMailBody)/>
+		<cfset local.mailMsg = "Email sent." />
 	</cfif>
 </cfif>
 
@@ -158,7 +158,9 @@ This file is part of Scribe.
 		<input type="submit" value="Save Changes" />
 	</fieldset>
 </form>
-<form id="subscribers" action="" method="post">
+<form id="subscribers" action="#cgi.SCRIPT_NAME###subscribers" method="post">
+	<input type="hidden" name="event" value="Scribe-settings" />
+	<input type="hidden" name="owner" value="Scribe" />
 	<fieldset>
 		<legend>Subscribers</legend>
 		<cfparam name="form.action" default="manage" />
