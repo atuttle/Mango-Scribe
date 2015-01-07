@@ -20,7 +20,7 @@ VERSION INFORMATION:
 
 This file is part of Scribe.
 -->
-<plugin id="com.fusiongrokker.plugins.Scribe" name="Scribe" version="1.4.5" provider-name="Adam Tuttle | http://fusiongrokker.com" class="Scribe.Handler">
+<plugin id="com.fusiongrokker.plugins.Scribe" name="Scribe" version="1.5" provider-name="Adam Tuttle | http://fusiongrokker.com" class="Scribe.Handler">
 	<description><![CDATA[ Adds an Email Subscription Pod.<br/>
 	<br/>
 	Written by <a href="http://fusiongrokker.com">Adam Tuttle</a><br/>
