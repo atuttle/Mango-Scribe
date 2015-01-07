@@ -584,7 +584,7 @@ This file is part of Scribe.
 		<cfset var local = structNew()/>
 		<cfset arguments.email = trim(arguments.email)/>
 		<!--- validate email address --->
-		<cfset local.emailRegex = "^[a-zA-Z][a-zA-Z0-9_\-\.]+[@][a-zA-Z0-9_]+([\.][a-zA-Z0-9_]+)*[\.][a-zA-Z]{2,4}$"/>
+		<cfset local.emailRegex = "^[a-zA-Z0-9_\-\.\+]+[@][a-zA-Z0-9_]+([\.][a-zA-Z0-9_]+)*[\.][a-zA-Z]+$"/>
 		<cfset local.emailValid = reReplaceNoCase(arguments.email,local.emailRegex,"true")/>
 		<cfif (local.emailValid neq "true")>
 			<cfreturn false />
